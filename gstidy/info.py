@@ -1,6 +1,7 @@
 import json
 import os
 
+
 def get_default_info():
     ndict = {
         # RS NUMBER
@@ -111,10 +112,10 @@ def get_info(value, type):
     :return: the value (snp2maf is maf values; snp2chrpos is chr and bp)
     """
     ref_dir = os.path.join(os.path.dirname(__file__), "../data/")
-    #ref_dir = "../data/"
+    # ref_dir = "../data/"
     if type == "snp2chrpos":
-        ref_snp = json.load(open(os.path.join(ref_dir,"snp2chrpos.json")))
+        ref_snp = json.load(open(os.path.join(ref_dir, "snp2chrpos.json")))
         return ref_snp.get(value)
     if type == "snp2maf":
-        ref_snp = json.load(open(os.path.join(ref_dir,"snp2maf.json")))
+        ref_snp = json.load(open(os.path.join(ref_dir, "snp2maf.json")))
         return ref_snp.get(value)

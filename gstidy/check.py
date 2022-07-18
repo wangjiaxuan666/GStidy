@@ -11,6 +11,7 @@ def clean_header(header):
     """
     return header.upper().replace('-', '_').replace('.', '_').replace('\n', '')
 
+
 def check_header(input_data):
     """
     For know which type column is not in pd.DataFrame columns
@@ -23,8 +24,8 @@ def check_header(input_data):
             have_col.append(get_default_info()[0][clean_header(x)])
         else:
             have_col.append(x)
-    name_dict = dict(zip(have_col,input_data.columns))
+    name_dict = dict(zip(have_col, input_data.columns))
     dont_have_col = [x for x in get_default_info()[1].keys() if not x in have_col]
     for cid in dont_have_col:
-        print('The input data lack of << {} >>, ===>:{}'.format(cid,get_default_info()[1][cid]))
-    return have_col, dont_have_col,name_dict
+        print('The input data lack of << {} >>, ===>:{}'.format(cid, get_default_info()[1][cid]))
+    return have_col, dont_have_col, name_dict

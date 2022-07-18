@@ -31,6 +31,7 @@ setup(
     install_requires=requirements,
     license="MIT license",
     include_package_data=True,
+    package_data={"gstidy":["data/snp2maf.json","data/snp2chrpos.json","data/fake_table.GWAS.sumstats.tsv"]},
     keywords='gstidy',
     name='gstidy',
     packages=find_packages(include=['gstidy', 'gstidy.*']),
