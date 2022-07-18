@@ -1,0 +1,338 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "collapsed": true,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "import json\n",
+    "import sys\n",
+    "from scipy.special import chdtri\n",
+    "from scipy.stats import norm\n",
+    "import math\n",
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "outputs": [],
+   "source": [
+    "def get_default_info():\n",
+    "    ndict = {\n",
+    "        # RS NUMBER\n",
+    "        'SNP': 'SNP',\n",
+    "        'MARKERNAME': 'SNP',\n",
+    "        'SNPID': 'SNP',\n",
+    "        'RS': 'SNP',\n",
+    "        'RSID': 'SNP',\n",
+    "        'RS_NUMBER': 'SNP',\n",
+    "        'RS_NUMBERS': 'SNP',\n",
+    "        # NUMBER OF STUDIES\n",
+    "        'NSTUDY': 'NSTUDY',\n",
+    "        'N_STUDY': 'NSTUDY',\n",
+    "        'NSTUDIES': 'NSTUDY',\n",
+    "        'N_STUDIES': 'NSTUDY',\n",
+    "        # P-VALUE\n",
+    "        'P': 'P',\n",
+    "        'PVALUE': 'P',\n",
+    "        'P_VALUE':  'P',\n",
+    "        'PVAL': 'P',\n",
+    "        'P_VAL': 'P',\n",
+    "        'GC_PVALUE': 'P',\n",
+    "        # ALLELE 1\n",
+    "        'A1': 'A1',\n",
+    "        'ALLELE1': 'A1',\n",
+    "        'ALLELE_1': 'A1',\n",
+    "        'EFFECT_ALLELE': 'A1',\n",
+    "        'REFERENCE_ALLELE': 'A1',\n",
+    "        'INC_ALLELE': 'A1',\n",
+    "        'EA': 'A1',\n",
+    "        # ALLELE 2\n",
+    "        'A2': 'A2',\n",
+    "        'ALLELE2': 'A2',\n",
+    "        'ALLELE_2': 'A2',\n",
+    "        'OTHER_ALLELE': 'A2',\n",
+    "        'NON_EFFECT_ALLELE': 'A2',\n",
+    "        'DEC_ALLELE': 'A2',\n",
+    "        'NEA': 'A2',\n",
+    "        # N\n",
+    "        'N': 'N',\n",
+    "        'NCASE': 'N_CAS',\n",
+    "        'CASES_N': 'N_CAS',\n",
+    "        'N_CASE': 'N_CAS',\n",
+    "        'N_CASES': 'N_CAS',\n",
+    "        'N_CONTROLS': 'N_CON',\n",
+    "        'N_CAS': 'N_CAS',\n",
+    "        'N_CON': 'N_CON',\n",
+    "        'N_CASE': 'N_CAS',\n",
+    "        'NCONTROL': 'N_CON',\n",
+    "        'CONTROLS_N': 'N_CON',\n",
+    "        'N_CONTROL': 'N_CON',\n",
+    "        'WEIGHT': 'N',  # metal does this. possibly risky.\n",
+    "        # SIGNED STATISTICS\n",
+    "        'ZSCORE': 'Z',\n",
+    "        'Z-SCORE': 'Z',\n",
+    "        'GC_ZSCORE': 'Z',\n",
+    "        'Z': 'Z',\n",
+    "        'OR': 'OR',\n",
+    "        'B': 'BETA',\n",
+    "        'BETA': 'BETA',\n",
+    "        'LOG_ODDS': 'LOG_ODDS',\n",
+    "        'EFFECTS': 'BETA',\n",
+    "        'EFFECT': 'BETA',\n",
+    "        'SIGNED_SUMSTAT': 'SIGNED_SUMSTAT',\n",
+    "        # standard errors\n",
+    "        'SE' : 'SE',\n",
+    "        'STANDARD ERRORS' : 'SE',\n",
+    "        # INFO\n",
+    "        'INFO': 'INFO',\n",
+    "        # MAF\n",
+    "        'EAF': 'FRQ',\n",
+    "        'FRQ': 'FRQ',\n",
+    "        'MAF': 'FRQ',\n",
+    "        'FRQ_U': 'FRQ',\n",
+    "        'F_U': 'FRQ',\n",
+    "        #phenotype\n",
+    "        'PHENOTYPE':'PHENOTYPE',\n",
+    "        \"PHENO\" :'PHENOTYPE',\n",
+    "    }\n",
+    "\n",
+    "    describe_ndict = {\n",
+    "        'SNP': 'Variant ID (e.g., rs number)',\n",
+    "        'P': 'p-Value',\n",
+    "        'A1': 'Allele 1, interpreted as ref allele for signed sumstat.',\n",
+    "        'A2': 'Allele 2, interpreted as non-ref allele for signed sumstat.',\n",
+    "        'N': 'Sample size',\n",
+    "        'SE' : 'standard errors',\n",
+    "        #'N_CAS': 'Number of cases',\n",
+    "        #'N_CON': 'Number of controls',\n",
+    "        'Z': 'Z-score (0 --> no effect; above 0 --> A1 is trait/risk increasing)',\n",
+    "        'OR': 'Odds ratio (1 --> no effect; above 1 --> A1 is risk increasing)',\n",
+    "        'BETA': '[linear/logistic] regression coefficient (0 --> no effect; above 0 --> A1 is trait/risk increasing)',\n",
+    "        #'LOG_ODDS': 'Log odds ratio (0 --> no effect; above 0 --> A1 is risk increasing)',\n",
+    "        'INFO': 'INFO score (imputation quality; higher --> better imputation)',\n",
+    "        'FRQ': 'Allele frequency',\n",
+    "        #'SIGNED_SUMSTAT': 'Directional summary statistic as specified by --signed-sumstats.',\n",
+    "        #'NSTUDY': 'Number of studies in which the SNP was genotyped.',\n",
+    "        'PHENOTYPE':'The disease PHENOTYPE, If you want add ,need -N parameter',\n",
+    "    }\n",
+    "    return ndict,describe_ndict"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "outputs": [],
+   "source": [
+    "def clean_header(header):\n",
+    "    \"\"\"\n",
+    "    For cleaning file headers.\n",
+    "    - convert to uppercase\n",
+    "    - replace dashes '-' with underscores '_'\n",
+    "    - replace dots '.' (as in R) with underscores '_'\n",
+    "    - remove newlines ('\\n')\n",
+    "    \"\"\"\n",
+    "    return header.upper().replace('-', '_').replace('.', '_').replace('\\n', '')\n",
+    "\n",
+    "def check_header(input_data):\n",
+    "    \"\"\"\n",
+    "    For know which type column is not in pd.DataFrame columns\n",
+    "    :param input_data: the pd.DataFrame\n",
+    "    :return: Two list,frist is which have, second is which not have\n",
+    "    \"\"\"\n",
+    "    have_col = []\n",
+    "    for x in input_data.columns:\n",
+    "        if clean_header(x) in get_default_info()[0].keys():\n",
+    "            have_col.append(get_default_info()[0][clean_header(x)])\n",
+    "        else:\n",
+    "            have_col.append(x)\n",
+    "    name_dict = dict(zip(have_col,input_data.columns))\n",
+    "    dont_have_col = [x for x in get_default_info()[1].keys() if not x in have_col]\n",
+    "    for cid in dont_have_col:\n",
+    "        print('The input data lack of << {} >>, ===>:{}'.format(cid,get_default_info()[1][cid]))\n",
+    "    return have_col, dont_have_col,name_dict\n",
+    "\n",
+    "def get_info(value, type):\n",
+    "    \"\"\"\n",
+    "    Get the value according to the rsid\n",
+    "    :param value: RSID\n",
+    "    :param type: the snp2chrpos and snp2maf\n",
+    "    :return: the value (snp2maf is maf values; snp2chrpos is chr and bp)\n",
+    "    \"\"\"\n",
+    "    #ref_dir = os.path.dirname(__file__)+\"../data/\"\n",
+    "    ref_dir = \"../data/\"\n",
+    "    if type == \"snp2chrpos\":\n",
+    "        ref_snp = json.load(open(os.path.join(ref_dir,\"snp2chrpos.json\")))\n",
+    "        return ref_snp.get(value)\n",
+    "    if type == \"snp2maf\":\n",
+    "        ref_snp = json.load(open(os.path.join(ref_dir,\"snp2maf.json\")))\n",
+    "        return ref_snp.get(value)"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "## 测试"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "outputs": [],
+   "source": [
+    "from scipy.special import chdtri\n",
+    "from scipy.stats import norm\n",
+    "import math\n",
+    "import os\n",
+    "import json\n",
+    "import sys\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "def fix_table(data):\n",
+    "    check_result = check_header(data)\n",
+    "    # caculate the se\n",
+    "    if \"SE\" in check_result[1]:\n",
+    "        if \"BETA\" in check_result[0] and 'P' in check_result[0]:\n",
+    "            data['SE'] = data.apply(lambda row: math.sqrt(((row.BETA)**2)/chdtri(1,row.P)),axis=1)\n",
+    "        elif \"OR\" in check_result[0] and 'P' in check_result[0]:\n",
+    "            data['SE'] = data.apply(lambda row: abs(np.log(row.OR)/norm.ppf((row.P)/2)),axis=1)\n",
+    "    # caculate the OR\n",
+    "    if \"OR\" in check_result[1]:\n",
+    "        if \"BETA\" in check_result[0]:\n",
+    "            data['OR'] = data.apply(lambda row: np.exp(row.BETA),axis=1)\n",
+    "        else:\n",
+    "            sys.exit(\"Please check the download link , the file never have OR and BETA\")\n",
+    "    # caculate the BETA\n",
+    "    if \"BETA\" in check_result[1]:\n",
+    "        if \"OR\" in check_result[0]:\n",
+    "            data['BETA'] = data.apply(lambda row: np.log(row.OR),axis=1)\n",
+    "        else:\n",
+    "            sys.exit(\"Please check the download link , the file never have OR and BETA\")\n",
+    "    # caculate the Z-scores\n",
+    "    if \"Z\" in check_result[1]:\n",
+    "        data['Z'] = data.apply(lambda row: row.BETA/row.SE,axis=1)\n",
+    "    data_header = [clean_header(x) for x in data.columns]\n",
+    "    if \"SNP\" in check_result[0]:\n",
+    "        if \"CHR\" not in data_header:\n",
+    "            data['CHR'] = data.apply(lambda row: \"chr\"+str(get_info(row[check_result[2].get(\"SNP\")],\"snp2chrpos\").split(\":\")[0]),axis=1)\n",
+    "        if \"BP\" not in data_header:\n",
+    "            data[\"BP\"] = data.apply(lambda row: get_info(row[check_result[2].get(\"SNP\")],\"snp2chrpos\").split(\":\")[1],axis=1)\n",
+    "        if \"FRQ\" in check_result[1]:\n",
+    "            data['MAF'] = data.apply(lambda row: get_info(row[check_result[2].get(\"SNP\")],\"snp2maf\"),axis=1)\n",
+    "    else:\n",
+    "        data.to_csv(\"test.tsv\",sep=\"\\t\",index=False)\n",
+    "        #sys.exit(\"Not have chr or base in data, please use parameter --chr and --bp\")\n",
+    "        sys.exit(\"NO REID,please use script to get the info\")\n",
+    "    return data"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The input data lack of << SE >>, ===>:standard errors\n",
+      "The input data lack of << Z >>, ===>:Z-score (0 --> no effect; above 0 --> A1 is trait/risk increasing)\n",
+      "The input data lack of << BETA >>, ===>:[linear/logistic] regression coefficient (0 --> no effect; above 0 --> A1 is trait/risk increasing)\n",
+      "The input data lack of << INFO >>, ===>:INFO score (imputation quality; higher --> better imputation)\n",
+      "The input data lack of << FRQ >>, ===>:Allele frequency\n",
+      "The input data lack of << PHENOTYPE >>, ===>:The disease PHENOTYPE, If you want add ,need -N parameter\n"
+     ]
+    }
+   ],
+   "source": [
+    "def gstidy(in_file = \"../data/fake_table.GWAS.sumstats.tsv\"):\n",
+    "    data = pd.read_csv(in_file,sep=\"\\t\")\n",
+    "    return fix_table(data)\n",
+    "new_data= gstidy()"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "outputs": [
+    {
+     "data": {
+      "text/plain": "         rsid A1 A2  N       P      OR        SE      BETA         Z    CHR  \\\n0  rs62635278  C  A  4  0.7911  0.9818  0.069343 -0.018368 -0.264882   chr1   \n1   rs2691333  G  T  5  0.8735  0.9924  0.047917 -0.007629 -0.159214   chr2   \n2  rs62635282  G  C  4  0.8020  0.9823  0.071218 -0.017859 -0.250760   chr3   \n3  rs62635284  A  G  4  0.7956  0.9806  0.075626 -0.019591 -0.259046   chr5   \n4  rs77233895  A  C  5  0.8814  0.9937  0.042360 -0.006320 -0.149195   chr1   \n5   rs6682375  A  G  4  0.8057  0.9817  0.075086 -0.018470 -0.245977   chr2   \n6   rs6682385  G  A  4  0.7992  0.9809  0.075810 -0.019285 -0.254383  chr22   \n7  rs11580262  A  G  4  0.7887  0.9784  0.081480 -0.021837 -0.267999   chr8   \n8   rs3982632  T  G  4  0.7992  0.9819  0.071804 -0.018266 -0.254383   chr8   \n\n        BP  MAF  \n0      456  0.3  \n1     3455  0.4  \n2  4556657  0.5  \n3     4546  0.4  \n4     3435  0.9  \n5     1232  0.1  \n6    45546  0.2  \n7   232244  0.4  \n8   354546  0.7  ",
+      "text/html": "<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n        text-align: right;\n    }\n</style>\n<table border=\"1\" class=\"dataframe\">\n  <thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>rsid</th>\n      <th>A1</th>\n      <th>A2</th>\n      <th>N</th>\n      <th>P</th>\n      <th>OR</th>\n      <th>SE</th>\n      <th>BETA</th>\n      <th>Z</th>\n      <th>CHR</th>\n      <th>BP</th>\n      <th>MAF</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>rs62635278</td>\n      <td>C</td>\n      <td>A</td>\n      <td>4</td>\n      <td>0.7911</td>\n      <td>0.9818</td>\n      <td>0.069343</td>\n      <td>-0.018368</td>\n      <td>-0.264882</td>\n      <td>chr1</td>\n      <td>456</td>\n      <td>0.3</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>rs2691333</td>\n      <td>G</td>\n      <td>T</td>\n      <td>5</td>\n      <td>0.8735</td>\n      <td>0.9924</td>\n      <td>0.047917</td>\n      <td>-0.007629</td>\n      <td>-0.159214</td>\n      <td>chr2</td>\n      <td>3455</td>\n      <td>0.4</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>rs62635282</td>\n      <td>G</td>\n      <td>C</td>\n      <td>4</td>\n      <td>0.8020</td>\n      <td>0.9823</td>\n      <td>0.071218</td>\n      <td>-0.017859</td>\n      <td>-0.250760</td>\n      <td>chr3</td>\n      <td>4556657</td>\n      <td>0.5</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>rs62635284</td>\n      <td>A</td>\n      <td>G</td>\n      <td>4</td>\n      <td>0.7956</td>\n      <td>0.9806</td>\n      <td>0.075626</td>\n      <td>-0.019591</td>\n      <td>-0.259046</td>\n      <td>chr5</td>\n      <td>4546</td>\n      <td>0.4</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>rs77233895</td>\n      <td>A</td>\n      <td>C</td>\n      <td>5</td>\n      <td>0.8814</td>\n      <td>0.9937</td>\n      <td>0.042360</td>\n      <td>-0.006320</td>\n      <td>-0.149195</td>\n      <td>chr1</td>\n      <td>3435</td>\n      <td>0.9</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>rs6682375</td>\n      <td>A</td>\n      <td>G</td>\n      <td>4</td>\n      <td>0.8057</td>\n      <td>0.9817</td>\n      <td>0.075086</td>\n      <td>-0.018470</td>\n      <td>-0.245977</td>\n      <td>chr2</td>\n      <td>1232</td>\n      <td>0.1</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>rs6682385</td>\n      <td>G</td>\n      <td>A</td>\n      <td>4</td>\n      <td>0.7992</td>\n      <td>0.9809</td>\n      <td>0.075810</td>\n      <td>-0.019285</td>\n      <td>-0.254383</td>\n      <td>chr22</td>\n      <td>45546</td>\n      <td>0.2</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>rs11580262</td>\n      <td>A</td>\n      <td>G</td>\n      <td>4</td>\n      <td>0.7887</td>\n      <td>0.9784</td>\n      <td>0.081480</td>\n      <td>-0.021837</td>\n      <td>-0.267999</td>\n      <td>chr8</td>\n      <td>232244</td>\n      <td>0.4</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>rs3982632</td>\n      <td>T</td>\n      <td>G</td>\n      <td>4</td>\n      <td>0.7992</td>\n      <td>0.9819</td>\n      <td>0.071804</td>\n      <td>-0.018266</td>\n      <td>-0.254383</td>\n      <td>chr8</td>\n      <td>354546</td>\n      <td>0.7</td>\n    </tr>\n  </tbody>\n</table>\n</div>"
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "new_data"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
