@@ -65,6 +65,7 @@ def get_default_info():
         'LOG_ODDS': 'LOG_ODDS',
         'EFFECTS': 'BETA',
         'EFFECT': 'BETA',
+        'ES':'BETA',
         'SIGNED_SUMSTAT': 'SIGNED_SUMSTAT',
         # standard errors
         'SE': 'SE',
